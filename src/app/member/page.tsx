@@ -110,17 +110,50 @@ export default function MemberDashboard() {
         return;
       }
 
-      const { data: profileData, error: profileError } = await getUserProfile(
-        user.id,
-      );
+      // Try to get profile, with retry logic for newly created users
+      let profileData = null;
+      let profileError = null;
+      let retries = 3;
 
-      if (profileError || !profileData) {
-        router.push("/memberlogin");
-        return;
+      while (retries > 0 && !profileData) {
+        const result = await getUserProfile(user.id);
+        profileData = result.data;
+        profileError = result.error;
+
+        if (!profileData && retries > 1) {
+          // Wait a bit and retry
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+        retries--;
       }
 
-      // Check if user has member role
-      if (profileData.role !== "member") {
+      if (profileError || !profileData) {
+        // If profile doesn't exist, create it
+        const { data: newProfile, error: createError } = await supabase
+          .from("profiles")
+          .upsert({
+            id: user.id,
+            email: user.email,
+            full_name:
+              user.user_metadata?.full_name ||
+              user.email?.split("@")[0] ||
+              "User",
+            role: user.user_metadata?.role || "member",
+          })
+          .select()
+          .single();
+
+        if (createError || !newProfile) {
+          console.error("Error creating profile:", createError);
+          router.push("/memberlogin");
+          return;
+        }
+
+        profileData = newProfile;
+      }
+
+      // Check if user has member role (allow admin too for testing)
+      if (profileData.role !== "member" && profileData.role !== "admin") {
         router.push("/memberlogin");
         return;
       }
@@ -128,6 +161,7 @@ export default function MemberDashboard() {
       setProfile(profileData);
       await loadUserCompetitions(user.id);
     } catch (err) {
+      console.error("Auth check error:", err);
       router.push("/memberlogin");
     } finally {
       setIsLoading(false);

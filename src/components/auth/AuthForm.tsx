@@ -65,7 +65,10 @@ export default function AuthForm({
       }
 
       if (data.user) {
-        router.push(redirectPath);
+        // Wait a moment for the profile to be created by the trigger
+        setTimeout(() => {
+          router.push("/member");
+        }, 1000);
       }
     } catch (err) {
       setError("An unexpected error occurred");

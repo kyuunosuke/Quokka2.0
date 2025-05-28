@@ -23,6 +23,21 @@ export const signUp = async (
       },
     },
   });
+
+  // If signup is successful and user is confirmed, create profile manually
+  if (data.user && !error && data.user.email_confirmed_at) {
+    const { error: profileError } = await supabase.from("profiles").upsert({
+      id: data.user.id,
+      email: data.user.email,
+      full_name: fullName,
+      role: role,
+    });
+
+    if (profileError) {
+      console.error("Error creating profile:", profileError);
+    }
+  }
+
   return { data, error };
 };
 

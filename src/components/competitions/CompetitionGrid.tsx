@@ -33,8 +33,52 @@ const CompetitionGrid = ({
   // Default competitions data if none provided
   const [displayedCompetitions, setDisplayedCompetitions] =
     useState<Competition[]>(competitions);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    fetchCompetitions();
+  }, []);
+
+  const fetchCompetitions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("competitions")
+        .select("*")
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const formattedData = data.map((comp) => ({
+          id: comp.id,
+          title: comp.title,
+          thumbnail:
+            comp.thumbnail_url ||
+            comp.image_url ||
+            "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&q=80",
+          deadline: comp.deadline,
+          prizeValue: comp.prize_value || "TBD",
+          category: comp.category,
+          difficulty: comp.difficulty,
+          requirements: comp.description || "No requirements specified",
+          rules: "Please check the competition details for specific rules",
+        }));
+        setDisplayedCompetitions(formattedData);
+      } else {
+        // Use default data if no competitions in database
+        loadDefaultCompetitions();
+      }
+    } catch (error) {
+      console.error("Error fetching competitions:", error);
+      // Fallback to default data on error
+      loadDefaultCompetitions();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadDefaultCompetitions = () => {
     // If no competitions are provided, use default data
     if (competitions.length === 0) {
       const defaultCompetitions: Competition[] = [
@@ -155,7 +199,7 @@ const CompetitionGrid = ({
     } else {
       setDisplayedCompetitions(competitions);
     }
-  }, [competitions]);
+  };
 
   // Apply filters when they change
   useEffect(() => {
@@ -196,6 +240,22 @@ const CompetitionGrid = ({
     setDisplayedCompetitions(filtered);
   }, [filters, competitions]);
 
+  if (isLoading) {
+    return (
+      <div className="bg-background p-4 md:p-6 lg:p-8 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="animate-pulse">
+              <div className="bg-muted rounded-xl h-48 mb-4"></div>
+              <div className="bg-muted rounded h-4 mb-2"></div>
+              <div className="bg-muted rounded h-3 w-2/3"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-background p-4 md:p-6 lg:p-8 w-full">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
@@ -204,7 +264,7 @@ const CompetitionGrid = ({
             key={competition.id}
             id={competition.id}
             title={competition.title}
-            thumbnail={competition.thumbnail}
+            imageUrl={competition.thumbnail}
             deadline={competition.deadline}
             prizeValue={competition.prizeValue}
             category={competition.category}

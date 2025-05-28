@@ -124,13 +124,13 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-4">
-                <Button>
-                  <Users className="h-4 w-4 mr-2" />
-                  Manage Users
+                <Button onClick={() => router.push("/admin/competitions")}>
+                  <Trophy className="h-4 w-4 mr-2" />
+                  Competition Management
                 </Button>
                 <Button variant="outline">
-                  <Trophy className="h-4 w-4 mr-2" />
-                  All Competitions
+                  <Users className="h-4 w-4 mr-2" />
+                  Manage Users
                 </Button>
                 <Button variant="outline">
                   <BarChart3 className="h-4 w-4 mr-2" />
